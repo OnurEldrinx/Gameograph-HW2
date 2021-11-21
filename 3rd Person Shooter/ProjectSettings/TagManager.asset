@@ -12,6 +12,7 @@ TagManager:
   - B
   - Stopper
   - Enemy
+  - Bullet
   layers:
   - Default
   - TransparentFX

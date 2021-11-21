@@ -2,10 +2,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
 
+    public static PlayerController PlayerInstance;
 
     private CharacterController characterController;
     private PlayerControls playerControlInputs;
@@ -13,9 +16,14 @@ public class PlayerController : MonoBehaviour
     private Vector2 inputValue;
     private Vector3 movement;
 
-    private float speed = 10f;
+    public int score;
 
-    private int health = 50;
+    private float speed = 5f;
+
+    public float health = 100;
+
+    public bool isDead;
+    public bool levelDone;
 
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private GameObject shootingPoint;
@@ -24,9 +32,20 @@ public class PlayerController : MonoBehaviour
 
     private Animator animator;
 
+    [SerializeField] private Text healthText;
+    [SerializeField] private Text scoreText;
+
+    private Rigidbody bulletRb;
+
+
     private void Awake()
     {
+        PlayerInstance = this;
 
+        isDead = false;
+        levelDone = false;
+
+        bulletRb = bulletPrefab.GetComponent<Rigidbody>();
         playerControlInputs = new PlayerControls();
         characterController = GetComponent<CharacterController>();
         animator = gameObject.GetComponentInChildren<Animator>();
@@ -38,21 +57,45 @@ public class PlayerController : MonoBehaviour
         playerControlInputs.Player.Shoot.started += Shoot;
         playerControlInputs.Player.Shoot.performed += Shoot;
         playerControlInputs.Player.Shoot.canceled += Shoot;
+
+
     }
 
     // Start is called before the first frame update
     void Start()
     {
+
         
+
     }
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
 
-        characterController.SimpleMove(movement * speed);
+        healthText.text = "Health : " + (int)PlayerInstance.health;
+        scoreText.text = "Score : " + (int)PlayerInstance.score;
 
+
+        if (!isDead && !levelDone)
+        {
+
+            characterController.SimpleMove(movement * speed);
+            Debug.Log(movement.x +" , "+movement.y +" , "+movement.z);
+
+        }
         
+
+        if (PlayerInstance.health<=0)
+        {
+
+            Debug.Log("Game Over");
+            animator.SetBool("isDead",true);
+            isDead = true;
+            
+            
+
+        }
    
     }
 
@@ -62,7 +105,7 @@ public class PlayerController : MonoBehaviour
     {
        
 
-        if (context.ReadValueAsButton())
+        if (context.ReadValueAsButton() && !isDead && !levelDone)
         {
             Debug.Log("Shoot");
             
@@ -77,7 +120,7 @@ public class PlayerController : MonoBehaviour
                 bullet.transform.rotation = bulletPrefab.transform.rotation;
                 animator.SetBool("isShooting",true);
                 bullet.SetActive(true);
-                bullet.GetComponent<Rigidbody>().AddForce(Vector3.forward * 100, ForceMode.Impulse);
+                bullet.GetComponent<Rigidbody>().AddForce(Vector3.forward * 50,ForceMode.Impulse);
 
             }
 
@@ -106,46 +149,68 @@ public class PlayerController : MonoBehaviour
     {
 
 
-        inputValue = context.ReadValue<Vector2>();
-
-
-        // Player will be able to move on only X axis, not Z axis
-        movement = new Vector3(inputValue.x,0,0);
-
-        if (inputValue.y != 0)
+        if (!isDead && !levelDone)
         {
 
-            animator.SetBool("isRunning",true);
+            inputValue = context.ReadValue<Vector2>();
+
+
+            // Player will be able to move on only X axis, not Z axis
+            movement = new Vector3(inputValue.x, 0,inputValue.y);
+
+            if (inputValue.y != 0)
+            {
+
+                animator.SetBool("isRunning", true);
+
+            }
+            else
+            {
+
+                animator.SetBool("isRunning", false);
+
+
+            }
+
+            /*
+            if (inputValue.x < 0)
+            {
+
+                animator.SetBool("isLeft", true);
+
+            }
+            else if (inputValue.x > 0)
+            {
+
+                animator.SetBool("isRight", true);
+
+            }
+            else
+            {
+                animator.SetBool("isLeft", false);
+                animator.SetBool("isRight", false);
+
+
+            }
+            */
+        
+        
+        }
+
+
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+
+        if (other.gameObject.tag == "Finish")
+        {
+
+            Debug.Log("You finished this level");
+            levelDone = true;
+            animator.SetBool("isRunning",false);
 
         }
-        else
-        {
-
-            animator.SetBool("isRunning", false);
-
-
-        }
-
-
-        if (inputValue.x < 0 )
-        {
-
-            animator.SetBool("isLeft",true);
-
-        }else if (inputValue.x > 0)
-        {
-
-            animator.SetBool("isRight",true);
-
-        }
-        else
-        {
-            animator.SetBool("isLeft", false);
-            animator.SetBool("isRight", false);
-
-
-        }
-
 
 
     }
@@ -163,5 +228,7 @@ public class PlayerController : MonoBehaviour
         playerControlInputs.Disable();
 
     }
+
+    
 
 }
